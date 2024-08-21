@@ -37,6 +37,7 @@ enum GME_ObjectTypes {
 struct GME_ObjectData {
 	int ObjectID;
 	GME_ObjectTypes Type;
+	int Parent = -1;
 	bool Visible;
 };
 
@@ -56,8 +57,14 @@ public:
 	}
 
 // DATA CONTAINERS
+
 	// ALL DESCENDANTS
 	std::unordered_map<int, std::shared_ptr<GME_ObjectData>> AllDescendantsContainer;
+
+	// CHILDREN CONTAINER
+
+	// FIRST: Parent IDs, SECOND: Children IDs
+	std::unordered_map<int, std::unordered_set<int>> ChildrenContainer;
 
 	// POSITON CONTAINER
 	std::unordered_map<int, vector2> PositionContainer;
@@ -67,6 +74,9 @@ public:
 
 	// VISIBLE CONTAINER
 	std::unordered_map<int, bool> VisibleContainer;
+
+	// INTERACTABLE CONTAINER
+	std::unordered_map<int, bool> InteractableContainer;
 
 	// COLOR CONTAINER
 	std::unordered_map<int, SDL_Color> ColorContainer;
@@ -81,7 +91,7 @@ public:
 
 // OBJECT CREATION
 
-// GENERATE ID
+// GENERATE/DELETE ID
 private:
 	// Allocates an ID and returns that ID.
 	int GenerateId() {
@@ -96,6 +106,19 @@ private:
 		const int id = AllocatedIDContainer.size();
 		AllocatedIDContainer.insert(id);
 		return id;
+	}
+
+	// Frees an allocated ID.
+	int FreeID(const int ID) {
+		if (ID > AllocatedIDContainer.size() && 
+			FreedIDContainer.find(ID) != FreedIDContainer.end()) 
+		{
+			AllocatedIDContainer.erase(ID);
+			FreedIDContainer.insert(ID);
+			
+		}
+
+		return 0;
 	}
 public:
 
@@ -129,6 +152,12 @@ public:
 
 		case Frame:
 			InitiateFrame(ID);
+			break;
+		case Button:
+			InitiateButton(ID);
+			break;
+		default:
+			break;
 		}
 
 		return objPointer;
@@ -149,6 +178,20 @@ public:
 		return 0;
 	}
 
+	// INITIATE BUTTON
+
+	// Returns 0 on success.
+	int InitiateButton(const int ID) {
+		PositionContainer.insert({ ID, {0,0} });
+		SizeContainer.insert({ ID, {0,0} });
+		VisibleContainer.insert({ ID, 1 });
+		ColorContainer.insert({ ID, { 0,0,0,255 } });
+		TextureContainer.insert({ ID, nullptr });
+		InteractableContainer.insert({ ID, 1 });
+
+		return 0;
+	}
+
 // OBJECT MODIFICATION
 
 	// UPDATE SIZE
@@ -159,8 +202,8 @@ public:
 	// 2 = texture failed to update.
 	int UpdateSize(const int objectID, const vector2 newSize) {
 		if (SizeContainer.find(objectID) != SizeContainer.end()) {
-			vector2 oldSize = SizeContainer.find(objectID)->second;
-			oldSize = newSize;
+			SizeContainer.find(objectID)->second = newSize;
+
 			const int success = UpdateTextureInt(objectID);
 			if (!success) {
 				return 2;
@@ -210,9 +253,178 @@ public:
 		return 0;
 	}
 
+	// UPDATE POSITION
+	
+	int UpdatePosition(const int objectID, const vector2 newPosition) {
+		if (PositionContainer.find(objectID) != PositionContainer.end()) {
+			PositionContainer.find(objectID)->second = newPosition;
+
+			return 0;
+		}
+		return 1;
+	}
+
+	//UPDATE COLOR
+
+	int UpdateColor(const int objectID, const SDL_Color newColor) {
+		if (ColorContainer.find(objectID) != ColorContainer.end()) {
+			ColorContainer.find(objectID)->second = newColor;
+
+			return 0;
+		}
+		return 1;
+	}
+
+	// UPDATE VISIBILITY
+	
+	int UpdateVisibility(const int objectID, const bool newVisiblity) {
+		if (VisibleContainer.find(objectID) != VisibleContainer.end()) {
+			VisibleContainer.find(objectID)->second = newVisiblity;
+
+			return 0;
+		}
+		return 1;
+	}
+
+	// UPDATE INTERACTIBILITY
+
+	int UpdateInteractability(const int objectID, const bool newInteractability) {
+		if (InteractableContainer.find(objectID) != InteractableContainer.end()) {
+			InteractableContainer.find(objectID)->second = newInteractability;
+
+			return 0;
+		}
+		return 1;
+	}
+
+
+
+	// PARENT AND ORPHAN ZONE
+
+	// VERIFY CHILD CONTAINER
+
+	// Verifies that a entry has been created for an ID, if not, it creates an entry.
+	// 1 = exists.
+	// 0 = does not exist.
+	bool VerifyChildContainer(const int parentID) {
+		if (ChildrenContainer.find(parentID) != ChildrenContainer.end()) {
+			return 1;
+		}
+		return 0;
+	}
+
+	// CREATE CHILD CONTAINER
+	
+	// Creates an entry in ChildrenContainer for the parentID if an entry doesn't already exist.
+	int CreateChildContainer(const int parentID) {
+		if (!VerifyChildContainer(parentID)) {
+			ChildrenContainer.insert({ parentID,std::unordered_set<int>() });
+		}
+		return 0;
+	}
+
+	// PARENT AN OBJECT
+
+	// Makes the parentID the parent of the childID
+	// 1 = failed
+	// 0 = success
+	int ParentObject(const int parentID, const int childID) {
+		CreateChildContainer(parentID);
+		ChildrenContainer[parentID].insert(childID);
+		AllDescendantsContainer[childID]->Parent = parentID;
+		return 0;
+	}
+
+	// ORPHAN OBJECT
+	
+	// Removes an object from its parents childrencontainer and sets the parentID to -1 (default parentID)
+	// 0 = success (Is now orphaned, could have been already).
+	int OrphanObject(const int objectID) {
+		auto objectParent = AllDescendantsContainer[objectID]->Parent;
+		if (objectParent != -1) {
+			ChildrenContainer[objectParent].erase(objectID);
+
+			objectParent = -1;
+		}
+		return 0;
+	}
+
 // OBJECT DESTRUCTION
 
-	// 
+	// DESTROY CHILDRENCONTAINER
+
+	// Destroys the given ID's child container
+	// 0 = success (it may not have existed in the first place, but it doesn't exist now.)
+	int DestroyChildrenContainer(const int parentID) {
+		if (VerifyChildContainer(parentID)) {
+			ChildrenContainer.erase(parentID);
+		}
+		return 0;
+	}
+
+	// DESTROY CHILDREN
+	
+	// Destroys all children of parentID
+	// 0 = success.
+	int DestroyChildren(const int parentID) {
+		if (VerifyChildContainer(parentID)) {
+			for (auto currentID : ChildrenContainer[parentID]) {
+				DestroyObject(currentID);
+			}
+		}
+
+		return 0;
+	}
+
+	// DESTROY FRAME
+
+	// Removes all data that belongs to the frame from all lists it is ever entered into (besides parent/child, this is managed in "DestroyObject")
+	int DestroyFrame(const int objectID) {
+		PositionContainer.erase(objectID);
+		SizeContainer.erase(objectID);
+		VisibleContainer.erase(objectID);
+		ColorContainer.erase(objectID);
+		TextureContainer.erase(objectID);
+		return 0;
+	}
+
+	// DESTROY BUTTON
+	
+	// Removes all data that belongs to the button from all lists it is ever entered into (besides parent/child, this is managed in "DestroyObject")
+	int DestroyButton(const int objectID) {
+		PositionContainer.erase(objectID);
+		SizeContainer.erase(objectID);
+		VisibleContainer.erase(objectID);
+		InteractableContainer.erase(objectID);
+		ColorContainer.erase(objectID);
+		TextureContainer.erase(objectID);
+		return 0;
+	}
+
+	// DESTROY OBJECT
+
+	// Removes all data relevant to the given object and frees the ID.
+	// Destroys all descendants of the object aswell.
+	int DestroyObject(const int objectID) {
+		if (AllDescendantsContainer.find(objectID) != AllDescendantsContainer.end()) {
+			switch (AllDescendantsContainer[objectID]->Type)
+			{
+			case Frame:
+				DestroyFrame(objectID);
+				break;
+			case Button:
+				DestroyButton(objectID);
+				break;
+			default:
+				break;
+			}
+
+			OrphanObject(objectID);
+			DestroyChildren(objectID);
+			DestroyChildrenContainer(objectID);
+			FreeID(objectID);
+		}
+	}
 
 // RENDER OBJECTS!
 
@@ -228,5 +440,7 @@ public:
 				SDL_RenderCopy(Renderer, TextureContainer[id], nullptr, rect);
 			}
 		}
+
+		return 0;
 	}
 };
