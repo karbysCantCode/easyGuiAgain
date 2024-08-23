@@ -3,10 +3,50 @@
 
 #include <iostream>
 #include "SDL.h"
+#include "EasyGui.h"
 
 int main(int argc, char* argv[])
 {
     std::cout << "Hello World!\n";
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        return 1; // Exit with error code
+    }
+
+    SDL_Window* window = SDL_CreateWindow(
+        "My SDL Window",               // Window title
+        SDL_WINDOWPOS_CENTERED,        // X position, centered
+        SDL_WINDOWPOS_CENTERED,        // Y position, centered
+        800,                           // Width
+        600,                           // Height
+        SDL_WINDOW_SHOWN                // Window flags
+    );
+
+    if (window == nullptr) {
+        std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+        SDL_Quit(); // Clean up SDL
+        return 1; // Exit with error code
+    }
+    
+    SDL_Renderer* renderer = SDL_CreateRenderer(
+        window,              // Window to associate with
+        -1,                  // Use the first rendering driver
+        SDL_RENDERER_ACCELERATED // Renderer flags
+    );
+
+    if (renderer == nullptr) {
+        std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+        SDL_DestroyWindow(window);
+        SDL_Quit(); // Clean up SDL
+        return 1; // Exit with error code
+    }
+
+    ScreenGui testGui(renderer, 800, 600);
+
+    int myObject = testGui.CreateObjectWithID(Frame);
+
+
 
     return 0;
 }

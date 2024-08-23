@@ -34,18 +34,11 @@ enum GME_ObjectTypes {
 	UIRounder
 };
 
-struct GME_ObjectData {
-	int ObjectID;
-	GME_ObjectTypes Type;
-	int Parent = -1;
-	bool Visible;
-};
-
 
 
 class ScreenGui {
 private:
-	SDL_Renderer* Renderer = nullptr;
+	static SDL_Renderer* Renderer;
 	int ScreenX = 0;
 	int ScreenY = 0;
 public:
@@ -56,45 +49,42 @@ public:
 		ScreenY = screenY;
 	}
 
-// DATA CONTAINERS
-
-	// ALL DESCENDANTS
-	std::unordered_map<int, std::shared_ptr<GME_ObjectData>> AllDescendantsContainer;
+// DATA CONTAINERS 1/2
 
 	// CHILDREN CONTAINER
 
 	// FIRST: Parent IDs, SECOND: Children IDs
-	std::unordered_map<int, std::unordered_set<int>> ChildrenContainer;
+	static std::unordered_map<int, std::unordered_set<int>> ChildrenContainer;
 
 	// POSITON CONTAINER
-	std::unordered_map<int, vector2> PositionContainer;
+	static std::unordered_map<int, vector2> PositionContainer;
 
 	// SIZE CONTAINER
-	std::unordered_map<int, vector2> SizeContainer;
+	static std::unordered_map<int, vector2> SizeContainer;
 
 	// VISIBLE CONTAINER
-	std::unordered_map<int, bool> VisibleContainer;
+	static std::unordered_map<int, bool> VisibleContainer;
 
 	// INTERACTABLE CONTAINER
-	std::unordered_map<int, bool> InteractableContainer;
+	static std::unordered_map<int, bool> InteractableContainer;
 
 	// COLOR CONTAINER
-	std::unordered_map<int, SDL_Color> ColorContainer;
+	static std::unordered_map<int, SDL_Color> ColorContainer;
 
 	// TEXTURE CONTAINER
-	std::unordered_map<int, SDL_Texture*> TextureContainer;
+	static std::unordered_map<int, SDL_Texture*> TextureContainer;
+
+// ID MANAGEMENT
 
 	// ALLOCATED IDS
-	std::unordered_set<int> AllocatedIDContainer;
+	static std::unordered_set<int> AllocatedIDContainer;
 	// FREED IDS
-	std::unordered_set<int> FreedIDContainer;
+	static std::unordered_set<int> FreedIDContainer;
 
-// OBJECT CREATION
-
-// GENERATE/DELETE ID
+	// GENERATE/DELETE ID
 private:
 	// Allocates an ID and returns that ID.
-	int GenerateId() {
+	static int GenerateId() {
 		if (!FreedIDContainer.empty()) {
 			auto it = FreedIDContainer.begin();
 			const int id = *it;
@@ -109,20 +99,180 @@ private:
 	}
 
 	// Frees an allocated ID.
-	int FreeID(const int ID) {
-		if (ID > AllocatedIDContainer.size() && 
-			FreedIDContainer.find(ID) != FreedIDContainer.end()) 
+	// 1 = success.
+	// 0 = not freed.
+	static int FreeID(const int ID) {
+		if (FreedIDContainer.find(ID) == FreedIDContainer.end() &&
+			AllocatedIDContainer.find(ID) != AllocatedIDContainer.end())
 		{
 			AllocatedIDContainer.erase(ID);
 			FreedIDContainer.insert(ID);
-			
+			return 1;
+
 		}
 
 		return 0;
 	}
 public:
 
-// CREATE OBJECT!
+// GME_OBJECTDATA
+
+	static class GME_ObjectData {
+	public:
+		// PROPERTIES
+		int ObjectID;
+		GME_ObjectTypes Type;
+		int Parent = -1;
+		bool Visible;
+
+		// INITIALIZER
+
+		GME_ObjectData(int objID = GenerateId(), GME_ObjectTypes type = Frame, int visible = 1) : ObjectID(objID), Type(type), Visible(visible) {}
+
+		// UPDATE POSITION
+
+		int UpdatePosition(const vector2 newPosition) {
+			if (PositionContainer.find(ObjectID) != PositionContainer.end()) {
+				PositionContainer.find(ObjectID)->second = newPosition;
+
+				return 0;
+			}
+			return 1;
+		}
+
+		// UPDATE SIZE
+
+	// This function changes the size of an object. It handles updating the texture so there is no need to call "UpdateTexture()" manually.
+	// 0 = success.
+	// 1 = object is not in SizeContainer.
+	// 2 = texture failed to update.
+		int UpdateSize(const vector2 newSize) {
+			if (SizeContainer.find(ObjectID) != SizeContainer.end()) {
+				SizeContainer.find(ObjectID)->second = newSize;
+
+				const int success = UpdateTextureInt();
+				if (!success) {
+					return 2;
+				}
+				return 0;
+			}
+			return 1;
+		}
+
+		// UPDATE TEXTURE
+
+		// The "UpdateTexture" function removes any existing texture for an object ID, creates a new texture, and returns it.
+		SDL_Texture* UpdateTexturePTR() {
+			if (TextureContainer.find(ObjectID) != TextureContainer.end()) { // remove any preexisitng textures for that obj id
+				TextureContainer.erase(TextureContainer.find(ObjectID));
+			}
+			const vector2 size = SizeContainer.find(ObjectID)->second;
+			SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA8888);
+
+			const SDL_Color sdlColor = ColorContainer.find(ObjectID)->second;
+			Uint32 color = SDL_MapRGBA(surface->format, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
+			SDL_FillRect(surface, nullptr, color);
+
+			// future integration for rounding edges here!
+
+			SDL_Texture* texture = SDL_CreateTextureFromSurface(Renderer, surface);
+			TextureContainer.insert({ ObjectID, texture });
+			return texture;
+		}
+
+		// Returns 0 on success.
+		int UpdateTextureInt() {
+			if (TextureContainer.find(ObjectID) != TextureContainer.end()) { // remove any preexisitng textures for that obj id
+				TextureContainer.erase(TextureContainer.find(ObjectID));
+			}
+			const vector2 size = SizeContainer.find(ObjectID)->second;
+			SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA8888);
+
+			const SDL_Color sdlColor = ColorContainer.find(ObjectID)->second;
+			Uint32 color = SDL_MapRGBA(surface->format, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
+			SDL_FillRect(surface, nullptr, color);
+
+			// future integration for rounding edges here!
+
+			SDL_Texture* texture = SDL_CreateTextureFromSurface(Renderer, surface);
+			TextureContainer.insert({ ObjectID, texture });
+			return 0;
+		}
+
+		// UPDATE POSITION
+
+		int UpdatePosition(const vector2 newPosition) {
+			if (PositionContainer.find(ObjectID) != PositionContainer.end()) {
+				PositionContainer.find(ObjectID)->second = newPosition;
+
+				return 0;
+			}
+			return 1;
+		}
+
+		//UPDATE COLOR
+
+		int UpdateColor(const SDL_Color newColor) {
+			if (ColorContainer.find(ObjectID) != ColorContainer.end()) {
+				ColorContainer.find(ObjectID)->second = newColor;
+
+				return 0;
+			}
+			return 1;
+		}
+
+		// UPDATE VISIBILITY
+
+		int UpdateVisibility(const bool newVisiblity) {
+			if (VisibleContainer.find(ObjectID) != VisibleContainer.end()) {
+				VisibleContainer.find(ObjectID)->second = newVisiblity;
+
+				return 0;
+			}
+			return 1;
+		}
+
+		// UPDATE INTERACTIBILITY
+
+		int UpdateInteractability(const bool newInteractability) {
+			if (InteractableContainer.find(ObjectID) != InteractableContainer.end()) {
+				InteractableContainer.find(ObjectID)->second = newInteractability;
+
+				return 0;
+			}
+			return 1;
+		}
+
+		int DestroyObject(const int objectID) {
+			if (AllDescendantsContainer.find(objectID) != AllDescendantsContainer.end()) {
+				switch (AllDescendantsContainer[objectID]->Type)
+				{
+				case Frame:
+					DestroyFrame(objectID);
+					break;
+				case Button:
+					DestroyButton(objectID);
+					break;
+				default:
+					break;
+				}
+
+				OrphanObject(objectID);
+				DestroyChildren(objectID);
+				DestroyChildrenContainer(objectID);
+				FreeID(objectID);
+			}
+		}
+	};
+
+// DATA CONTAINERS 2/2
+
+	// ALL DESCENDANTS
+	static std::unordered_map<int, std::shared_ptr<GME_ObjectData>> AllDescendantsContainer;
+
+// OBJECT CREATION
+
+    // CREATE OBJECT!
 	
 	// Creates an object and returns the ID of the object.
 	int CreateObjectWithID(GME_ObjectTypes type) {
@@ -168,7 +318,7 @@ public:
 	// INITIATE FRAME
 	
 	// Returns 0 on success.
-	int InitiateFrame(const int ID) {
+	static int InitiateFrame(const int ID) {
 		PositionContainer.insert({ ID, {0,0} });
 		SizeContainer.insert({ ID, {0,0} });
 		VisibleContainer.insert({ ID, 1 });
@@ -181,7 +331,7 @@ public:
 	// INITIATE BUTTON
 
 	// Returns 0 on success.
-	int InitiateButton(const int ID) {
+	static int InitiateButton(const int ID) {
 		PositionContainer.insert({ ID, {0,0} });
 		SizeContainer.insert({ ID, {0,0} });
 		VisibleContainer.insert({ ID, 1 });
@@ -194,111 +344,6 @@ public:
 
 // OBJECT MODIFICATION
 
-	// UPDATE SIZE
-
-	// This function changes the size of an object. It handles updating the texture so there is no need to call "UpdateTexture()" manually.
-	// 0 = success.
-	// 1 = object is not in SizeContainer.
-	// 2 = texture failed to update.
-	int UpdateSize(const int objectID, const vector2 newSize) {
-		if (SizeContainer.find(objectID) != SizeContainer.end()) {
-			SizeContainer.find(objectID)->second = newSize;
-
-			const int success = UpdateTextureInt(objectID);
-			if (!success) {
-				return 2;
-			}
-			return 0;
-		}
-		return 1;
-	}
-
-	// UPDATE TEXTURE
-
-	// The "UpdateTexture" function removes any existing texture for an object ID, creates a new texture, and returns it.
-	SDL_Texture* UpdateTexturePTR(const int objectID) {
-		if (TextureContainer.find(objectID) != TextureContainer.end()) { // remove any preexisitng textures for that obj id
-			TextureContainer.erase(TextureContainer.find(objectID));
-		}
-		const vector2 size = SizeContainer.find(objectID)->second;
-		SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA8888);
-
-		const SDL_Color sdlColor = ColorContainer.find(objectID)->second;
-		Uint32 color = SDL_MapRGBA(surface->format, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-		SDL_FillRect(surface, nullptr, color);
-
-		// future integration for rounding edges here!
-
-		SDL_Texture* texture = SDL_CreateTextureFromSurface(Renderer, surface);
-		TextureContainer.insert({ objectID, texture });
-		return texture;
-	}
-	
-	// Returns 0 on success.
-	int UpdateTextureInt(const int objectID) {
-		if (TextureContainer.find(objectID) != TextureContainer.end()) { // remove any preexisitng textures for that obj id
-			TextureContainer.erase(TextureContainer.find(objectID));
-		}
-		const vector2 size = SizeContainer.find(objectID)->second;
-		SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, size.x, size.y, 32, SDL_PIXELFORMAT_RGBA8888);
-
-		const SDL_Color sdlColor = ColorContainer.find(objectID)->second;
-		Uint32 color = SDL_MapRGBA(surface->format, sdlColor.r, sdlColor.g, sdlColor.b, sdlColor.a);
-		SDL_FillRect(surface, nullptr, color);
-
-		// future integration for rounding edges here!
-
-		SDL_Texture* texture = SDL_CreateTextureFromSurface(Renderer, surface);
-		TextureContainer.insert({ objectID, texture });
-		return 0;
-	}
-
-	// UPDATE POSITION
-	
-	int UpdatePosition(const int objectID, const vector2 newPosition) {
-		if (PositionContainer.find(objectID) != PositionContainer.end()) {
-			PositionContainer.find(objectID)->second = newPosition;
-
-			return 0;
-		}
-		return 1;
-	}
-
-	//UPDATE COLOR
-
-	int UpdateColor(const int objectID, const SDL_Color newColor) {
-		if (ColorContainer.find(objectID) != ColorContainer.end()) {
-			ColorContainer.find(objectID)->second = newColor;
-
-			return 0;
-		}
-		return 1;
-	}
-
-	// UPDATE VISIBILITY
-	
-	int UpdateVisibility(const int objectID, const bool newVisiblity) {
-		if (VisibleContainer.find(objectID) != VisibleContainer.end()) {
-			VisibleContainer.find(objectID)->second = newVisiblity;
-
-			return 0;
-		}
-		return 1;
-	}
-
-	// UPDATE INTERACTIBILITY
-
-	int UpdateInteractability(const int objectID, const bool newInteractability) {
-		if (InteractableContainer.find(objectID) != InteractableContainer.end()) {
-			InteractableContainer.find(objectID)->second = newInteractability;
-
-			return 0;
-		}
-		return 1;
-	}
-
-
-
 	// PARENT AND ORPHAN ZONE
 
 	// VERIFY CHILD CONTAINER
@@ -306,7 +351,7 @@ public:
 	// Verifies that a entry has been created for an ID, if not, it creates an entry.
 	// 1 = exists.
 	// 0 = does not exist.
-	bool VerifyChildContainer(const int parentID) {
+	static bool VerifyChildContainer(const int parentID) {
 		if (ChildrenContainer.find(parentID) != ChildrenContainer.end()) {
 			return 1;
 		}
@@ -316,7 +361,7 @@ public:
 	// CREATE CHILD CONTAINER
 	
 	// Creates an entry in ChildrenContainer for the parentID if an entry doesn't already exist.
-	int CreateChildContainer(const int parentID) {
+	static int CreateChildContainer(const int parentID) {
 		if (!VerifyChildContainer(parentID)) {
 			ChildrenContainer.insert({ parentID,std::unordered_set<int>() });
 		}
@@ -328,7 +373,7 @@ public:
 	// Makes the parentID the parent of the childID
 	// 1 = failed
 	// 0 = success
-	int ParentObject(const int parentID, const int childID) {
+	static int ParentObject(const int parentID, const int childID) {
 		CreateChildContainer(parentID);
 		ChildrenContainer[parentID].insert(childID);
 		AllDescendantsContainer[childID]->Parent = parentID;
@@ -339,7 +384,7 @@ public:
 	
 	// Removes an object from its parents childrencontainer and sets the parentID to -1 (default parentID)
 	// 0 = success (Is now orphaned, could have been already).
-	int OrphanObject(const int objectID) {
+	static int OrphanObject(const int objectID) {
 		auto objectParent = AllDescendantsContainer[objectID]->Parent;
 		if (objectParent != -1) {
 			ChildrenContainer[objectParent].erase(objectID);
@@ -355,7 +400,7 @@ public:
 
 	// Destroys the given ID's child container
 	// 0 = success (it may not have existed in the first place, but it doesn't exist now.)
-	int DestroyChildrenContainer(const int parentID) {
+	static int DestroyChildrenContainer(const int parentID) {
 		if (VerifyChildContainer(parentID)) {
 			ChildrenContainer.erase(parentID);
 		}
@@ -366,7 +411,7 @@ public:
 	
 	// Destroys all children of parentID
 	// 0 = success.
-	int DestroyChildren(const int parentID) {
+	static int DestroyChildren(const int parentID) {
 		if (VerifyChildContainer(parentID)) {
 			for (auto currentID : ChildrenContainer[parentID]) {
 				DestroyObject(currentID);
@@ -379,7 +424,7 @@ public:
 	// DESTROY FRAME
 
 	// Removes all data that belongs to the frame from all lists it is ever entered into (besides parent/child, this is managed in "DestroyObject")
-	int DestroyFrame(const int objectID) {
+	static int DestroyFrame(const int objectID) {
 		PositionContainer.erase(objectID);
 		SizeContainer.erase(objectID);
 		VisibleContainer.erase(objectID);
@@ -391,7 +436,7 @@ public:
 	// DESTROY BUTTON
 	
 	// Removes all data that belongs to the button from all lists it is ever entered into (besides parent/child, this is managed in "DestroyObject")
-	int DestroyButton(const int objectID) {
+	static int DestroyButton(const int objectID) {
 		PositionContainer.erase(objectID);
 		SizeContainer.erase(objectID);
 		VisibleContainer.erase(objectID);
@@ -405,7 +450,7 @@ public:
 
 	// Removes all data relevant to the given object and frees the ID.
 	// Destroys all descendants of the object aswell.
-	int DestroyObject(const int objectID) {
+	static int DestroyObject(const int objectID) {
 		if (AllDescendantsContainer.find(objectID) != AllDescendantsContainer.end()) {
 			switch (AllDescendantsContainer[objectID]->Type)
 			{
