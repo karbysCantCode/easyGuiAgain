@@ -26,5 +26,8 @@
     <ClInclude Include="..\..\CPP usefull headers\Vector2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\CPP usefull headers\TickRateMadeEasy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

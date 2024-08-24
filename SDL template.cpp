@@ -4,6 +4,7 @@
 #include <iostream>
 #include "SDL.h"
 #include "EasyGui.h"
+#include "TickRateMadeEasy.h"
 
 int main(int argc, char* argv[])
 {
@@ -44,7 +45,43 @@ int main(int argc, char* argv[])
 
     ScreenGui testGui(renderer, 800, 600);
 
-    int myObject = testGui.CreateObjectWithID(Frame);
+    auto myObject = testGui.CreateObjectWithPTR(Frame);
+
+    bool running = true;
+
+    SDL_Event event;
+
+    int tick = 0;
+
+    const auto tickInterval = TRME_getTickInterval(30);
+
+    while (running) {
+        auto startTime = TRME_getTimePoint();
+        
+        tick++;
+
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+            else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                
+            }
+            // Add more event handling as needed (e.g., keyboard input, mouse clicks)
+        }
+
+        testGui.RenderObjects();
+
+        if (tick % 60 == 0) {
+            auto frame = testGui.CreateObjectWithPTR(Frame);
+            testGui.UpdateSize()
+            std::cout << "yes\n";
+        }
+
+        TRME_sleepUntilNextTick(startTime, tickInterval);
+    }
 
 
 

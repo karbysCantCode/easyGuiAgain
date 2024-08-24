@@ -7,6 +7,8 @@ public:
 
     vector2(double newX, double newY) : x(newX), y(newY) {} // same as x=newx y=newy
 
+    vector2() : x(0), y(0) {}
+
     vector2 operator+(const vector2& additionVec) {
         return vector2(x + additionVec.x, y + additionVec.y);
     }
@@ -88,12 +90,12 @@ public:
     doubleVec2(vector2 firstNew, vector2 secondNew) : first(firstNew), second(secondNew) {} // same as x=newx y=newy
 
     doubleVec2 operator+(const doubleVec2& additionVec) {
-        return doubleVec2(first + additionVec.first, second + additionVec.second)
+        return doubleVec2(first + additionVec.first, second + additionVec.second);
     }
 
     doubleVec2 operator+=(const doubleVec2& additionVec) {
         first += additionVec.first;
         second += additionVec.second;
-        return this*
+        return *this;
     }
 };
