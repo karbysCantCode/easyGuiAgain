@@ -43,10 +43,6 @@ int main(int argc, char* argv[])
         return 1; // Exit with error code
     }
 
-    ScreenGui testGui(renderer, 800, 600);
-
-    auto myObject = testGui.CreateObjectWithPTR(Frame);
-
     bool running = true;
 
     SDL_Event event;
@@ -72,12 +68,10 @@ int main(int argc, char* argv[])
             // Add more event handling as needed (e.g., keyboard input, mouse clicks)
         }
 
-        testGui.RenderObjects();
+       
 
         if (tick % 60 == 0) {
-            auto frame = testGui.CreateObjectWithPTR(Frame);
-            testGui.UpdateSize()
-            std::cout << "yes\n";
+            
         }
 
         TRME_sleepUntilNextTick(startTime, tickInterval);
