@@ -11,18 +11,49 @@
 
 
 class GME_Frame {
-public:
+public:	
 
 	int ID = -1;
 	int ParentID = -1;
 
-	vector2 Size = vector2();
-	vector2 Position = vector2();
+	vector2 Size;
+	vector2 Position;
+	SDL_Color Color = { 0,0,0,255 };
 	bool Visible = true;
 
 	SDL_Texture* Texture = nullptr;
 
 	GME_Frame() {};
+
+	~GME_Frame() {
+		if (Texture) {
+			SDL_DestroyTexture(Texture);
+		}
+	}
+
+	void DisplayDebugData() {
+		std::cout << ID << '\n';
+		std::cout << ParentID << '\n';
+		std::cout << Size.x << '\n';
+		std::cout << Size.y << '\n';
+		std::cout << Position.x << '\n';
+		std::cout << Position.y << '\n';
+		std::cout << Visible << '\n';
+		std::cout << '\n';
+	};
+
+	void RefreshTexture(SDL_Renderer* renderer) {
+		if (Texture != nullptr) {
+			SDL_DestroyTexture(Texture);
+		}
+		SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, Size.x, Size.y, 32, SDL_PIXELFORMAT_RGBA8888);
+
+		Uint32 color = SDL_MapRGBA(surface->format, Color.r, Color.g, Color.b, Color.a);
+		SDL_FillRect(surface, nullptr, color);
+		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+		Texture = texture;
+	}
 };
 
 class GME_Button {
@@ -33,12 +64,37 @@ public:
 
 	vector2 Size = vector2();
 	vector2 Position = vector2();
+	SDL_Color Color = { 0,0,0,255 };
 	bool Visible = true;
 	bool Interactable = true;
 
 	SDL_Texture* Texture = nullptr;
 
 	GME_Button() {};
+
+	void DisplayDebugData() {
+		std::cout << ID << '\n';
+		std::cout << ParentID << '\n';
+		std::cout << Size.x << '\n';
+		std::cout << Size.y << '\n';
+		std::cout << Position.x << '\n';
+		std::cout << Position.y << '\n';
+		std::cout << Visible << '\n';
+		std::cout << '\n';
+	};
+};
+
+class GME_Test {
+public:
+
+	int ID = -1;
+	int ParentID = -1;
+
+	vector2 Size = vector2();
+	bool Visible = true;
+	bool Interactable = true;
+
+	GME_Test() {};
 };
 
 enum GME_ObjectTypes {
@@ -46,18 +102,29 @@ enum GME_ObjectTypes {
 	Button
 };
 
-using GME_GenericObject = std::variant<GME_Frame, GME_Button>;
+using GME_GenericObject = std::variant<GME_Frame, GME_Button, GME_Test>;
 
 class GME_ObjectManager {
 private: 
-	std::shared_ptr<GME_GenericObject> GetObjectPointer(int id) {
-		auto it = AllObjects.find(id);
-		if (it != AllObjects.end()) {
-			return it->second;
-		}
-		return nullptr;
+	template <typename T>
+	T* GetValuePointer(std::shared_ptr<GME_GenericObject> genericPointer) {
+
+		T* ptr = std::get_if<T>(&(*genericPointer));
+
+		return ptr;
 	}
 
+	template <typename T>
+	void RenderIndividualObject(const int id) {
+		const auto valuePointer = GetValuePointer<T>(AllObjects[id]);
+		SDL_Texture* texture = valuePointer->Texture;
+		SDL_Rect rect = {};
+		rect.x = valuePointer->Position.x;
+		rect.y = valuePointer->Position.y;
+		rect.w = valuePointer->Size.x;
+		rect.h = valuePointer->Size.y;
+		SDL_RenderCopy(Renderer, texture, NULL, &rect);
+	}
 public:
 
 	SDL_Renderer* Renderer = nullptr;
@@ -68,6 +135,9 @@ public:
 	std::unordered_set<int> FreedIDs;
 
 	std::unordered_map<int, std::shared_ptr<GME_GenericObject>> AllObjects;
+	std::unordered_map<int, GME_ObjectTypes> IDTypePairs;
+
+	std::unordered_map<int, std::unordered_map<int, int>> ParentRecord;
 
 	GME_ObjectManager(SDL_Renderer* renderer, int screenX, int screenY) : Renderer(renderer), ScreenX(screenX), ScreenY(screenY) {}
 
@@ -93,17 +163,44 @@ public:
 		FreedIDs.insert(ID);
 	}
 
-	// Returns the ID of the created object.
+	void RenderAll() {
+		for (const auto object : AllObjects) {
+			const int id = object.first;
+			const GME_ObjectTypes type = IDTypePairs[id];
+
+			switch (type)
+			{
+			case Frame:
+				RenderIndividualObject<GME_Frame>(id);
+				continue;
+				break;
+			case Button:
+				RenderIndividualObject<GME_Button>(id);
+				continue;
+				break;
+			default:
+				continue;
+				break;
+			}
+		}
+	}
+
+	// Returns the PTR of the created object.
 	template <typename T>
 	T* Create() {
 		const int id = GetID();
-		std::shared_ptr<GME_GenericObject> object;
+		auto object = std::make_shared<GME_GenericObject>(T());
 
-		object = T;
+		AllObjects[id] = object;
+		IDTypePairs[id] = Frame;
 
+		T* ptr = std::get_if<T>(&(*object));
 
+		ptr->ID = id;
 
-
+		return ptr;
 	}
+
+
 
 };

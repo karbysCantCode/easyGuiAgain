@@ -49,6 +49,29 @@ int main(int argc, char* argv[])
 
     int tick = 0;
 
+    GME_ObjectManager test(renderer, 800, 600);
+
+    auto frame = test.Create<GME_Frame>();
+
+    auto frame2 = test.Create<GME_Frame>();
+
+    frame->DisplayDebugData();
+    frame2->DisplayDebugData();
+
+    frame->Position.x = 10;
+
+    frame->Size = vector2(100, 100);
+
+    frame->Color = { 255,0,0,255 };
+
+    frame->RefreshTexture(renderer);
+    
+    frame->DisplayDebugData();
+
+    int myint = int();
+
+    std::cout << myint;
+
     const auto tickInterval = TRME_getTickInterval(30);
 
     while (running) {
@@ -68,12 +91,14 @@ int main(int argc, char* argv[])
             // Add more event handling as needed (e.g., keyboard input, mouse clicks)
         }
 
-       
+        SDL_RenderClear(renderer);
 
         if (tick % 60 == 0) {
             
         }
 
+        test.RenderAll();
+        SDL_RenderPresent(renderer);
         TRME_sleepUntilNextTick(startTime, tickInterval);
     }
 
