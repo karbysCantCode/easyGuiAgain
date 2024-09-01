@@ -165,9 +165,9 @@ private:
 		const double yPortion = ScreenY / ClickCells;
 
 		vector2 toReturn;
-		const int cellX = checkPosition.x / xPortion;
-		const int cellY = checkPosition.y / yPortion;
-
+		toReturn.x = checkPosition.x / xPortion;
+		toReturn.y = checkPosition.y / yPortion;
+		return toReturn;
 	}
 public:
 
@@ -242,15 +242,11 @@ public:
 	}
 
 	void ProcessClick(const int mouseX, const int mouseY) {
-		const double xPortion = ScreenX / ClickCells;
-		const double yPortion = ScreenY / ClickCells;
-		
-		const int cellX = mouseX / xPortion;
-		const int cellY = mouseY / yPortion;
+		vector2 cell = CalculateSquare(vector2(mouseX, mouseY));
 
-		std::cout << cellX << ' ' << cellY << '\n';
+		std::cout << cell.x << ' ' << cell.y << '\n';
 
-		for (auto& genericObject : ClickableHolders[cellX * ClickCells + cellY]) {
+		for (auto& genericObject : ClickableHolders[cell.x * ClickCells + cell.y]) {
 			switch (IDTypePairs[genericObject.first])
 			{
 			case Button:
