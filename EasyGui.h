@@ -5,6 +5,7 @@
 
 #include <variant>
 #include <memory>
+#include <functional>
 
 #include "unordered_set"
 #include "unordered_map"
@@ -82,6 +83,21 @@ public:
 		std::cout << Visible << '\n';
 		std::cout << '\n';
 	};
+
+	void RefreshTexture(SDL_Renderer* renderer) {
+		if (Texture != nullptr) {
+			SDL_DestroyTexture(Texture);
+		}
+		SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, Size.x, Size.y, 32, SDL_PIXELFORMAT_RGBA8888);
+
+		Uint32 color = SDL_MapRGBA(surface->format, Color.r, Color.g, Color.b, Color.a);
+		SDL_FillRect(surface, nullptr, color);
+		SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+		Texture = texture;
+	}
+
+	std::function<void()> ActivationFunction;
 };
 
 class GME_Test {
@@ -116,20 +132,34 @@ private:
 
 	template <typename T>
 	void RenderIndividualObject(const int id) {
+		std::cout << AllObjects[id] << '\n';
 		const auto valuePointer = GetValuePointer<T>(AllObjects[id]);
-		SDL_Texture* texture = valuePointer->Texture;
-		SDL_Rect rect = {};
-		rect.x = valuePointer->Position.x;
-		rect.y = valuePointer->Position.y;
-		rect.w = valuePointer->Size.x;
-		rect.h = valuePointer->Size.y;
-		SDL_RenderCopy(Renderer, texture, NULL, &rect);
+		if (valuePointer->Texture != nullptr) {
+			SDL_Texture* texture = valuePointer->Texture;
+			SDL_Rect rect = {};
+			rect.x = valuePointer->Position.x;
+			rect.y = valuePointer->Position.y;
+			rect.w = valuePointer->Size.x;
+			rect.h = valuePointer->Size.y;
+			SDL_RenderCopy(Renderer, texture, NULL, &rect);
+		}
+	}
+
+	template <typename T>
+	bool IsWithinRange(const T& value, const T& min, const T& max) {
+		return (value >= min && value <= max);
+	}
+
+	bool CheckPositionInBox(const vector2 checkPosition, const vector2 objSize, const vector2 objPosition) {
+		return IsWithinRange<int>(checkPosition.x, objPosition.x, objPosition.x + objSize.x) && IsWithinRange<int>(checkPosition.y, objPosition.y, objPosition.y + objSize.y);
 	}
 public:
 
 	SDL_Renderer* Renderer = nullptr;
 	int ScreenX = 0;
 	int ScreenY = 0;
+
+	const int ClickCells = 10; // is X and Y, so n^2 is the total amount, the var is just the side witdh
 
 	std::unordered_set<int> AllocatedIDs;
 	std::unordered_set<int> FreedIDs;
@@ -139,7 +169,17 @@ public:
 
 	std::unordered_map<int, std::unordered_map<int, int>> ParentRecord;
 
-	GME_ObjectManager(SDL_Renderer* renderer, int screenX, int screenY) : Renderer(renderer), ScreenX(screenX), ScreenY(screenY) {}
+	std::vector<std::unordered_map<int, std::shared_ptr<GME_GenericObject>>> ClickableHolders;
+
+	GME_ObjectManager(SDL_Renderer* renderer, int screenX, int screenY) : Renderer(renderer), ScreenX(screenX), ScreenY(screenY) {
+		// init ClickableHolders
+		ClickableHolders.resize(ClickCells * ClickCells);
+		for (int x = 0; x < ClickCells; ++x) {
+			for (int y = 0; y < ClickCells; ++y) {
+				ClickableHolders[x * ClickCells + y] = std::unordered_map<int, std::shared_ptr<GME_GenericObject>>();
+			}
+		}
+	}
 
 
 	int GetID() {
@@ -180,6 +220,26 @@ public:
 				break;
 			default:
 				continue;
+				break;
+			}
+		}
+	}
+
+	void ProcessClick(const int mouseX, const int mouseY) {
+		const double xPortion = ScreenX / ClickCells;
+		const double yPortion = ScreenY / ClickCells;
+		
+		const int cellX = mouseX / xPortion;
+		const int cellY = mouseY / yPortion;
+
+		for (auto& genericObject : ClickableHolders[cellX * ClickCells + cellY]) {
+			switch (IDTypePairs[genericObject.first])
+			{
+			case Button:
+				auto buttonPtr = GetValuePointer<GME_Button>(genericObject.second);
+				if (buttonPtr->Interactable) {
+					buttonPtr->ActivationFunction();
+				}
 				break;
 			}
 		}

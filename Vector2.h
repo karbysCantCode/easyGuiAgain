@@ -99,3 +99,78 @@ public:
         return *this;
     }
 };
+
+class tripleDouble {
+public:
+    double x, y, z;
+
+    tripleDouble(double X, double Y, double Z) : x(X), y(Y), z(Z) {}
+
+    tripleDouble() : x(0), y(0), z(0) {}
+
+    tripleDouble operator+(const tripleDouble& toAdd) const  {
+        return tripleDouble(toAdd.x + x, toAdd.y + y, toAdd.z + z);
+    }
+    tripleDouble& operator+=(const tripleDouble& toAdd) {
+        x += toAdd.x;
+        y += toAdd.y;
+        z += toAdd.z;
+        return *this;
+    }
+
+    tripleDouble operator-(const tripleDouble& toSub) const  {
+        return tripleDouble(x - toSub.x, y - toSub.y, z - toSub.z);
+    }
+    tripleDouble& operator-=(const tripleDouble& toSub) {
+        x -= toSub.x;
+        y -= toSub.y;
+        z -= toSub.z;
+        return *this;
+    }
+
+    tripleDouble operator*(const tripleDouble& toMult) const  {
+        return tripleDouble(x * toMult.x, y * toMult.y, z * toMult.z);
+    }
+    tripleDouble& operator*=(const tripleDouble& toMult) {
+        x *= toMult.x;
+        y *= toMult.y;
+        z *= toMult.z;
+        return *this;
+    }
+
+    tripleDouble operator/(const tripleDouble& toDiv) const  {
+        return tripleDouble(x / toDiv.x, y / toDiv.y, z / toDiv.z);
+    }
+    tripleDouble& operator/=(const tripleDouble& toDiv) {
+        x /= toDiv.x;
+        y /= toDiv.y;
+        z /= toDiv.z;
+        return *this;
+    }
+
+    tripleDouble& operator=(const tripleDouble& toEqual) {
+        if (this != &toEqual) {  // Check for self-assignment
+            x = toEqual.x;
+            y = toEqual.y;
+            z = toEqual.z;
+        }
+        return *this;
+    }
+
+    bool operator==(const tripleDouble& toCompare) const  {
+        return x == toCompare.x && y == toCompare.y && z == toCompare.z;
+    }
+    bool operator>=(const tripleDouble& toCompare) const  {
+        return x >= toCompare.x && y >= toCompare.y && z >= toCompare.z;
+    }
+    bool operator<=(const tripleDouble& toCompare) const  {
+        return x <= toCompare.x && y <= toCompare.y && z <= toCompare.z;
+    }
+
+    bool operator<(const tripleDouble& toCompare) const  {
+        return x < toCompare.x && y < toCompare.y && z < toCompare.z;
+    }
+    bool operator>(const tripleDouble& toCompare) const  {
+        return x > toCompare.x && y > toCompare.y && z > toCompare.z;
+    }
+};

@@ -6,6 +6,10 @@
 #include "EasyGui.h"
 #include "TickRateMadeEasy.h"
 
+void what() {
+    std::cout << "clicked!\n";
+}
+
 int main(int argc, char* argv[])
 {
     std::cout << "Hello World!\n";
@@ -51,8 +55,8 @@ int main(int argc, char* argv[])
 
     GME_ObjectManager test(renderer, 800, 600);
 
-    auto frame = test.Create<GME_Frame>();
-
+    auto frame = test.Create<GME_Button>();
+    frame->ActivationFunction = what;
     auto frame2 = test.Create<GME_Frame>();
 
     frame->DisplayDebugData();
@@ -67,10 +71,6 @@ int main(int argc, char* argv[])
     frame->RefreshTexture(renderer);
     
     frame->DisplayDebugData();
-
-    int myint = int();
-
-    std::cout << myint;
 
     const auto tickInterval = TRME_getTickInterval(30);
 
