@@ -36,6 +36,7 @@ public:
 		std::cout << ParentID << '\n';
 		std::cout << Size.x << '\n';
 		std::cout << Size.y << '\n';
+		std::cout << Color.r << ' ' << Color.g << ' ' << Color.b << ' ' << Color.a << '\n';
 		std::cout << Position.x << '\n';
 		std::cout << Position.y << '\n';
 		std::cout << Visible << '\n';
@@ -107,7 +108,7 @@ using GME_GenericObject = std::variant<GME_Frame, GME_Button, GME_Test>;
 class GME_ObjectManager {
 private: 
 	template <typename T>
-	T* GetValuePointer(std::shared_ptr<GME_GenericObject> genericPointer) {
+	T* GetLiteralPointer(std::shared_ptr<GME_GenericObject> genericPointer) {
 
 		T* ptr = std::get_if<T>(&(*genericPointer));
 
