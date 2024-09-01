@@ -174,3 +174,8 @@ public:
         return x > toCompare.x && y > toCompare.y && z > toCompare.z;
     }
 };
+
+struct vector2Pair {
+    vector2 Position;
+    vector2 SIze;
+};

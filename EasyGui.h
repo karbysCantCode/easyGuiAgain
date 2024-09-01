@@ -74,6 +74,12 @@ public:
 
 	GME_Button() {};
 
+	~GME_Button() {
+		if (Texture) {
+			SDL_DestroyTexture(Texture);
+		}
+	}
+
 	void DisplayDebugData() {
 		std::cout << ID << '\n';
 		std::cout << ParentID << '\n';
@@ -133,7 +139,7 @@ private:
 
 	template <typename T>
 	void RenderIndividualObject(const int id) {
-		const auto valuePointer = GetValuePointer<T>(AllObjects[id]);
+		const auto valuePointer = GetLiteralPointer<T>(AllObjects[id]);
 		if (valuePointer->Texture != nullptr) {
 			SDL_Texture* texture = valuePointer->Texture;
 			SDL_Rect rect = {};
@@ -152,6 +158,16 @@ private:
 
 	bool CheckPositionInBox(const vector2 checkPosition, const vector2 objSize, const vector2 objPosition) {
 		return IsWithinRange<int>(checkPosition.x, objPosition.x, objPosition.x + objSize.x) && IsWithinRange<int>(checkPosition.y, objPosition.y, objPosition.y + objSize.y);
+	}
+
+	vector2 CalculateSquare(vector2 checkPosition) {
+		const double xPortion = ScreenX / ClickCells;
+		const double yPortion = ScreenY / ClickCells;
+
+		vector2 toReturn;
+		const int cellX = checkPosition.x / xPortion;
+		const int cellY = checkPosition.y / yPortion;
+
 	}
 public:
 
@@ -232,11 +248,13 @@ public:
 		const int cellX = mouseX / xPortion;
 		const int cellY = mouseY / yPortion;
 
+		std::cout << cellX << ' ' << cellY << '\n';
+
 		for (auto& genericObject : ClickableHolders[cellX * ClickCells + cellY]) {
 			switch (IDTypePairs[genericObject.first])
 			{
 			case Button:
-				auto buttonPtr = GetValuePointer<GME_Button>(genericObject.second);
+				auto buttonPtr = GetLiteralPointer<GME_Button>(genericObject.second);
 				if (buttonPtr->Interactable) {
 					buttonPtr->ActivationFunction();
 				}
@@ -245,6 +263,23 @@ public:
 		}
 	}
 
+		void UpdateClickableSquares(const int objID, const vector2 oldPosition, vector2 oldSize) {
+			vector2 newSize, newPosition;
+			switch (IDTypePairs[objID])
+			{
+			case Button: {
+				auto objPtr = GetLiteralPointer<GME_Button>(AllObjects[objID]);
+				newSize = objPtr->Size;
+				newPosition = objPtr->Position;
+			}
+				break;
+			default:
+				break;
+			}
+
+
+		
+		}
 	// Returns the PTR of the created object.
 	template <typename T>
 	T* Create() {
