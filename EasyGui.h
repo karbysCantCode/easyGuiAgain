@@ -132,7 +132,6 @@ private:
 
 	template <typename T>
 	void RenderIndividualObject(const int id) {
-		std::cout << AllObjects[id] << '\n';
 		const auto valuePointer = GetValuePointer<T>(AllObjects[id]);
 		if (valuePointer->Texture != nullptr) {
 			SDL_Texture* texture = valuePointer->Texture;
@@ -252,7 +251,16 @@ public:
 		auto object = std::make_shared<GME_GenericObject>(T());
 
 		AllObjects[id] = object;
-		IDTypePairs[id] = Frame;
+
+		if constexpr (std::is_same_v<T, GME_Frame>) {
+			IDTypePairs[id] = Frame;
+		}
+		else if constexpr (std::is_same_v<T, GME_Button>) {
+			IDTypePairs[id] = Button;
+		}
+		else {
+			// Handle other types or a default case
+		}
 
 		T* ptr = std::get_if<T>(&(*object));
 

@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
             else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 int mouseX, mouseY;
                 SDL_GetMouseState(&mouseX, &mouseY);
-                
+                test.ProcessClick(mouseX, mouseY);
             }
             // Add more event handling as needed (e.g., keyboard input, mouse clicks)
         }
