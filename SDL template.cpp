@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
 
     frame->Color = { 255,0,0,255 };
 
+    test.UpdateClickableSquares(frame->ID, vector2<int>(0, 0), vector2<int>(0, 0));
     frame->RefreshTexture(renderer);
     
     frame->DisplayDebugData();

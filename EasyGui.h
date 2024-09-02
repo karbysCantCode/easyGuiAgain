@@ -17,8 +17,8 @@ public:
 	int ID = -1;
 	int ParentID = -1;
 
-	vector2 Size;
-	vector2 Position;
+	vector2<int> Size;
+	vector2<int> Position;
 	SDL_Color Color = { 0,0,0,255 };
 	bool Visible = true;
 
@@ -64,8 +64,8 @@ public:
 	int ID = -1;
 	int ParentID = -1;
 
-	vector2 Size = vector2();
-	vector2 Position = vector2();
+	vector2<int> Size;
+	vector2<int> Position;
 	SDL_Color Color = { 0,0,0,255 };
 	bool Visible = true;
 	bool Interactable = true;
@@ -113,7 +113,7 @@ public:
 	int ID = -1;
 	int ParentID = -1;
 
-	vector2 Size = vector2();
+	vector2<int> Size;
 	bool Visible = true;
 	bool Interactable = true;
 
@@ -156,17 +156,17 @@ private:
 		return (value >= min && value <= max);
 	}
 
-	bool CheckPositionInBox(const vector2 checkPosition, const vector2 objSize, const vector2 objPosition) {
+	bool CheckPositionInBox(const vector2<int> checkPosition, const vector2<int> objSize, const vector2<int> objPosition) {
 		return IsWithinRange<int>(checkPosition.x, objPosition.x, objPosition.x + objSize.x) && IsWithinRange<int>(checkPosition.y, objPosition.y, objPosition.y + objSize.y);
 	}
 
-	vector2 CalculateSquare(vector2 checkPosition) {
+	vector2<int> CalculateSquare(vector2<int> checkPosition) {
 		const double xPortion = ScreenX / ClickCells;
 		const double yPortion = ScreenY / ClickCells;
 
-		vector2 toReturn;
-		toReturn.x = checkPosition.x / xPortion;
-		toReturn.y = checkPosition.y / yPortion;
+		vector2<int> toReturn;
+		toReturn.x = static_cast<int>(checkPosition.x / xPortion);
+		toReturn.y = static_cast<int>(checkPosition.y / yPortion);
 		return toReturn;
 	}
 public:
@@ -242,7 +242,7 @@ public:
 	}
 
 	void ProcessClick(const int mouseX, const int mouseY) {
-		vector2 cell = CalculateSquare(vector2(mouseX, mouseY));
+		const vector2<int> cell = CalculateSquare(vector2<int>(mouseX, mouseY));
 
 		std::cout << cell.x << ' ' << cell.y << '\n';
 
@@ -251,7 +251,7 @@ public:
 			{
 			case Button:
 				auto buttonPtr = GetLiteralPointer<GME_Button>(genericObject.second);
-				if (buttonPtr->Interactable) {
+				if (buttonPtr->Interactable && CheckPositionInBox(vector2<int>(mouseX, mouseY), buttonPtr->Size, buttonPtr->Position)) {
 					buttonPtr->ActivationFunction();
 				}
 				break;
@@ -259,8 +259,8 @@ public:
 		}
 	}
 
-		void UpdateClickableSquares(const int objID, const vector2 oldPosition, vector2 oldSize) {
-			vector2 newSize, newPosition;
+	void UpdateClickableSquares(const int objID, vector2<int> oldPosition, vector2<int> oldSize) {
+			vector2<int> newSize, newPosition;
 			switch (IDTypePairs[objID])
 			{
 			case Button: {
@@ -273,8 +273,29 @@ public:
 				break;
 			}
 
-
+			
+			{
+				const vector2<int> minCell = CalculateSquare(oldPosition);
+				const vector2<int> maxCell = CalculateSquare(oldPosition + oldSize);
+				std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
+				for (int x = minCell.x; x <= maxCell.x; ++x) {
+					for (int y = minCell.y; y <= maxCell.y; ++y) {
+						ClickableHolders[x * ClickCells + y].erase(objID);
+					}
+				}
+			}
 		
+
+			{
+				const vector2<int> minCell = CalculateSquare(newPosition);
+				const vector2<int> maxCell = CalculateSquare(newPosition + newSize);
+				std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
+				for (int x = minCell.x; x <= maxCell.x; ++x) {
+					for (int y = minCell.y; y <= maxCell.y; ++y) {
+						ClickableHolders[x * ClickCells + y].insert({ objID, AllObjects[objID] });
+					}
+				}
+			}
 		}
 	// Returns the PTR of the created object.
 	template <typename T>
