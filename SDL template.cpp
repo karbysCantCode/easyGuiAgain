@@ -5,46 +5,52 @@
 #include "SDL.h"
 #include "EasyGui.h"
 #include "TickRateMadeEasy.h"
+#include "physicsOrSomething.h"
 
 void what() {
     std::cout << "clicked!\n";
 }
 
+
+
 int main(int argc, char* argv[])
 {
     std::cout << "Hello World!\n";
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    {
+        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+            std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+            return 1; // Exit with error code
+        }
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
-        return 1; // Exit with error code
-    }
+        window = SDL_CreateWindow(
+            "My SDL Window",               // Window title
+            SDL_WINDOWPOS_CENTERED,        // X position, centered
+            SDL_WINDOWPOS_CENTERED,        // Y position, centered
+            800,                           // Width
+            600,                           // Height
+            SDL_WINDOW_SHOWN                // Window flags
+        );
 
-    SDL_Window* window = SDL_CreateWindow(
-        "My SDL Window",               // Window title
-        SDL_WINDOWPOS_CENTERED,        // X position, centered
-        SDL_WINDOWPOS_CENTERED,        // Y position, centered
-        800,                           // Width
-        600,                           // Height
-        SDL_WINDOW_SHOWN                // Window flags
-    );
+        if (window == nullptr) {
+            std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
+            SDL_Quit(); // Clean up SDL
+            return 1; // Exit with error code
+        }
 
-    if (window == nullptr) {
-        std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
-        SDL_Quit(); // Clean up SDL
-        return 1; // Exit with error code
-    }
-    
-    SDL_Renderer* renderer = SDL_CreateRenderer(
-        window,              // Window to associate with
-        -1,                  // Use the first rendering driver
-        SDL_RENDERER_ACCELERATED // Renderer flags
-    );
+        renderer = SDL_CreateRenderer(
+            window,              // Window to associate with
+            -1,                  // Use the first rendering driver
+            SDL_RENDERER_ACCELERATED // Renderer flags
+        );
 
-    if (renderer == nullptr) {
-        std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit(); // Clean up SDL
-        return 1; // Exit with error code
+        if (renderer == nullptr) {
+            std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+            SDL_DestroyWindow(window);
+            SDL_Quit(); // Clean up SDL
+            return 1; // Exit with error code
+        }
     }
 
     bool running = true;
@@ -52,28 +58,27 @@ int main(int argc, char* argv[])
     SDL_Event event;
 
     int tick = 0;
+    const vector2<int> scrSize = { 800, 600 };
+    GME_ObjectManager manager(renderer, 800, 600);
+    WorldPhysicsManager phyManager;
+    phyManager.ScreenSize = scrSize;
 
-    GME_ObjectManager test(renderer, 800, 600);
 
-    auto frame = test.Create<GME_Button>();
-    frame->ActivationFunction = what;
-    auto frame2 = test.Create<GME_Frame>();
+    auto button = manager.Create<GME_Button>();
+    auto box = phyManager.Create(button->ID);
 
-    frame->DisplayDebugData();
-    frame2->DisplayDebugData();
+    box->Size = vector2<double>(50, 50);
+    box->Position = vector2<double>(200, 500);
 
-    frame->Position.x = 10;
+    button->Position = box->Position;
+    button->Size = box->Size;
+    button->Color = { 255,255,255,255 };
+    button->RefreshTexture(renderer);
 
-    frame->Size = vector2(100, 100);
+    manager.UpdateClickableSquares(button->ID, button->Position, button->Size);
+    const int tickRate = 40;
 
-    frame->Color = { 255,0,0,255 };
-
-    test.UpdateClickableSquares(frame->ID, vector2<int>(0, 0), vector2<int>(0, 0));
-    frame->RefreshTexture(renderer);
-    
-    frame->DisplayDebugData();
-
-    const auto tickInterval = TRME_getTickInterval(30);
+    const auto tickInterval = TRME_getTickInterval(tickRate);
 
     while (running) {
         auto startTime = TRME_getTimePoint();
@@ -87,18 +92,26 @@ int main(int argc, char* argv[])
             else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 int mouseX, mouseY;
                 SDL_GetMouseState(&mouseX, &mouseY);
-                test.ProcessClick(mouseX, mouseY);
+                manager.ProcessClick(mouseX, mouseY);
             }
             // Add more event handling as needed (e.g., keyboard input, mouse clicks)
         }
 
         SDL_RenderClear(renderer);
 
+        phyManager.StepPhysics(tickRate);
+        vector2<int> size, pos;
+        size = button->Size;
+        pos = button->Position;
+
+        button->Position = box->GetPixelPosition(scrSize);
+        manager.UpdateClickableSquares(button->ID, pos, size);
+
         if (tick % 60 == 0) {
             
         }
 
-        test.RenderAll();
+        manager.RenderAll();
         SDL_RenderPresent(renderer);
         TRME_sleepUntilNextTick(startTime, tickInterval);
     }

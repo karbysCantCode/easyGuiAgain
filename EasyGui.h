@@ -259,7 +259,7 @@ public:
 		}
 	}
 
-	void UpdateClickableSquares(const int objID, vector2<int> oldPosition, vector2<int> oldSize) {
+	void UpdateClickableSquares(const int& objID, vector2<int>& oldPosition, vector2<int>& oldSize) {
 			vector2<int> newSize, newPosition;
 			switch (IDTypePairs[objID])
 			{

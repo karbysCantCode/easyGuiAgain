@@ -10,6 +10,12 @@ public:
 
     vector2() : x(0), y(0) {}
 
+    template <typename U>
+    vector2(const vector2<U>& other) {
+        x = static_cast<T>(other.x);
+        y = static_cast<T>(other.y);
+    }
+
     vector2 operator+(vector2& additionVec) const {
         return vector2(x + additionVec.x, y + additionVec.y);
     }
