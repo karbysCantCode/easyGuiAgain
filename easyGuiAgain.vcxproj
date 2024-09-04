@@ -138,9 +138,9 @@
     <ClCompile Include="SDL template.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\CPP usefull headers\TickRateMadeEasy.h" />
     <ClInclude Include="EasyGui.h" />
     <ClInclude Include="physicsOrSomething.h" />
+    <ClInclude Include="TickRateMadeEasy.h" />
     <ClInclude Include="Vector2.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

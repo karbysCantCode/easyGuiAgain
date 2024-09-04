@@ -7,7 +7,7 @@
 #include "TickRateMadeEasy.h"
 #include "physicsOrSomething.h"
 
-void what() {
+void myFunction() {
     std::cout << "clicked!\n";
 }
 
@@ -75,8 +75,15 @@ int main(int argc, char* argv[])
     button->Color = { 255,255,255,255 };
     button->RefreshTexture(renderer);
 
+    button->ActivationFunction = myFunction;
+
     manager.UpdateClickableSquares(button->ID, button->Position, button->Size);
-    const int tickRate = 40;
+
+
+
+
+
+    const int tickRate = 999;
 
     const auto tickInterval = TRME_getTickInterval(tickRate);
 
@@ -107,8 +114,21 @@ int main(int argc, char* argv[])
         button->Position = box->GetPixelPosition(scrSize);
         manager.UpdateClickableSquares(button->ID, pos, size);
 
-        if (tick % 60 == 0) {
-            
+        if (true) {
+            auto button = manager.Create<GME_Button>();
+            auto box = phyManager.Create(button->ID);
+            std::cout << "NEW: " << button->ID << '\n';
+            box->Size = vector2<double>(50, 50);
+            box->Position = vector2<double>(200, 500);
+
+            button->Position = box->Position;
+            button->Size = box->Size;
+            button->Color = { 255,255,255,255 };
+            button->RefreshTexture(renderer);
+
+            button->ActivationFunction = myFunction;
+
+            manager.UpdateClickableSquares(button->ID, button->Position, button->Size);
         }
 
         manager.RenderAll();

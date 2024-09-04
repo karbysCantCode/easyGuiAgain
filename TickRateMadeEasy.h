@@ -31,6 +31,7 @@ std::chrono::duration<double, std::milli> TRME_getTimepointDifference(std::chron
 //
 void TRME_sleepUntilNextTick(std::chrono::time_point<std::chrono::high_resolution_clock> startTime , std::chrono::milliseconds tickInterval) {
 	auto elapsed = TRME_getTimePoint() - startTime;
+	std::cout << "Elapsed time: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " ms\n";
 	auto timeToSleep = tickInterval - std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
 	if (timeToSleep > std::chrono::milliseconds(0)) {
 		std::this_thread::sleep_for(timeToSleep);

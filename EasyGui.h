@@ -244,7 +244,7 @@ public:
 	void ProcessClick(const int mouseX, const int mouseY) {
 		const vector2<int> cell = CalculateSquare(vector2<int>(mouseX, mouseY));
 
-		std::cout << cell.x << ' ' << cell.y << '\n';
+		//std::cout << cell.x << ' ' << cell.y << '\n';
 
 		for (auto& genericObject : ClickableHolders[cell.x * ClickCells + cell.y]) {
 			switch (IDTypePairs[genericObject.first])
@@ -277,7 +277,7 @@ public:
 			{
 				const vector2<int> minCell = CalculateSquare(oldPosition);
 				const vector2<int> maxCell = CalculateSquare(oldPosition + oldSize);
-				std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
+				//std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
 				for (int x = minCell.x; x <= maxCell.x; ++x) {
 					for (int y = minCell.y; y <= maxCell.y; ++y) {
 						ClickableHolders[x * ClickCells + y].erase(objID);
@@ -289,7 +289,7 @@ public:
 			{
 				const vector2<int> minCell = CalculateSquare(newPosition);
 				const vector2<int> maxCell = CalculateSquare(newPosition + newSize);
-				std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
+				//std::cout << minCell.x << ':' << minCell.y << "  :  " << maxCell.x << ':' << maxCell.y << '\n';
 				for (int x = minCell.x; x <= maxCell.x; ++x) {
 					for (int y = minCell.y; y <= maxCell.y; ++y) {
 						ClickableHolders[x * ClickCells + y].insert({ objID, AllObjects[objID] });

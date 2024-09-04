@@ -22,18 +22,18 @@ public:
 		int Mass;
 
 		vector2<int> GetPixelPosition(const vector2<int>& screenSize) {
-			return vector2<int>(Position.x, screenSize.y - Position.y);
+			return vector2<int>(Position.x + (Size.x / 2), screenSize.y - Position.y - (Size.y / 2));
 		}
 
 		void StepPosition(const double& gravityVelocity) {
 			Velocity.y += gravityVelocity;
 			Position -= Velocity;
-			if (Position.y - (Size.y/2) <= 1) {
+			if (Position.y - (Size.y/2) <= 0) {
 				Velocity.y = 0;
 				Position.y = Size.y/2;
 			}
 
-			std::cout << Position.x << ':' << Position.y << "  :  " << Velocity.x << ':' << Velocity.y << '\n';
+			//std::cout << Position.x << ':' << Position.y << "  :  " << Velocity.x << ':' << Velocity.y << '\n';
 			
 
 		}
